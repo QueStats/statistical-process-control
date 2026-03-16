@@ -36,7 +36,6 @@ Results indicate the process is **not capable**, with more than 50% of units out
 
 ## Repository Structure
 
-R/ – scripts used for analysis  
-figures/ – control charts and capability plots  
-tables/ – capability statistics  
-report/ – full analysis report
+analysis/ – R Markdown source code  
+data/ – dataset used in analysis  
+report/ – compiled project report
