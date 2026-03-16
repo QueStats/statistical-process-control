@@ -1,0 +1,298 @@
+---
+output: 
+  pdf_document:
+classoption:
+- twocolumn
+header-includes:
+  - \setlength{\columnseprule}{0.5pt}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tinytex)
+library(knitr)
+library(qcc)
+
+load("/Users/q/Desktop/8 QuincyCornish .RData")
+p1.data <- data[1:40,1:19]
+p2.data <- data[41:60,1:19]
+```
+
+# Establishing Statistical Control 
+
+In Phase 1, the process was evaluated using both S and $\bar{X}$ control charts. The first step involved observing the collected data and dividing it into two segments: Phase 1 calibration data for initial control analysis, and Phase 2 monitoring data for continued process evaluation.
+
+Initially, Fig. 1 shows an in-control process for an S-chart of p1.data.
+
+```{r phase 1 s-chart, include=FALSE}
+# p1.data <- data[1:40,1:19]
+# p2.data <- data[41:60,1:19]
+# for fig.1
+a <- qcc(p1.data, type = "S")
+wl1 <- limits.S(a$center, a$std.dev, a$sizes, 1)
+wl2 <- limits.S(a$center, a$std.dev, a$sizes, 2)
+```
+
+```{r phase 1 s-chart wl, echo=FALSE, fig.cap="Phase 1 s-chart: uncorrected", results='hide'}
+plot(a, add.stats = T, restore.par = F)
+  abline(h = wl1, lty = 2, col = "black")
+  abline(h = wl2, lty = 2, col = "black")
+  
+```
+
+Continuing to the $\bar{X}$ chart (Fig. 2) where process instability is observed. 9 consecutive points fall on the same side of the centerline which violates rule 4 of the Western Electric rules and is a signal of a shift in the process.
+
+```{r phase 1 xbar-chart, include=FALSE}
+# for fig.2
+b <- qcc(p1.data, type = "xbar", std.dev = a$std.dev)
+wl1 <- limits.xbar(b$center, b$std.dev, b$sizes, 1)
+wl2 <- limits.xbar(b$center, b$std.dev, b$sizes, 2)
+```
+
+```{r phase 1 xbar-chart wl, echo=FALSE, fig.cap="Phase 1 xbar-chart: uncorrected", results='hide'}
+plot(b, add.stats = T, restore.par = F)
+  abline(h = wl1, lty = 2, col = "black")
+  abline(h = wl2, lty = 2, col = "black")
+  
+```
+
+Due to the nature of this report we are to assume any assignable causes of variation that are signaled can be found and fixed. As such, to establish control, samples associated with these violations (`r b[["violations"]][["violating.runs"]][-1]`) were removed, and population parameters were recalculated.
+
+```{r phase 1 chart correction, echo=FALSE}
+# phase 1 data re-evaluation
+v.c <- b[["violations"]][["violating.runs"]][-1]
+p1.c <- p1.data[-(v.c),]
+
+```
+
+Reassessment of the cleaned p1.data (p1.c) S-Chart (Fig. 3) revealed no further violations or abnormal patterns.
+
+```{r phase 1 s-chart corrected, include=FALSE}
+# for fig.3
+c <- qcc(p1.c, type = "S")
+wl1 <- limits.S(c$center, c$std.dev, c$sizes, 1)
+wl2 <- limits.S(c$center, c$std.dev, c$sizes, 2)
+```
+
+```{r phase 1 s-chart corrected wl, echo=FALSE, fig.cap="Phase 1 s-chart: corrected", results='hide'}
+plot(c, add.stats = T, restore.par = F)
+  abline(h = wl1, lty = 2, col = "black")
+  abline(h = wl2, lty = 2, col = "black")
+  
+```
+
+Recreating another $\bar{X}$ chart (Fig. 4) results in no violations, indicating that both process variability and central tendency are now stable for Phase 1. Following this refinement, the process exhibited a slightly lower mean and standard deviation, suggesting reduced variability and improved consistency.
+
+```{r phase 1 xbar-chart corrected, include=FALSE}
+# for fig.4
+d <- qcc(p1.c, type = "xbar", std.dev = c$std.dev)
+wl1 <- limits.xbar(d$center, d$std.dev, d$sizes, 1)
+wl2 <- limits.xbar(d$center, d$std.dev, d$sizes, 2)
+```
+
+```{r phase 1 xbar-chart corrected wl, echo=FALSE, fig.cap="Phase 1 xbar-chart: corrected", results='hide'}
+plot(d, add.stats = T, restore.par = F)
+  abline(h = wl1, lty = 2, col = "black")
+  abline(h = wl2, lty = 2, col = "black")
+  
+```
+
+These results confirm that the process is in statistical control and is appropriate for Phase 2 monitoring and capability analysis which follow as such.
+
+\newpage
+  $>$ Add Phase 2 data (p2.data) to corrected Phase 1 data (p1.c). Results: Rule 1 violation, points beyond limits (Fig. 5).
+
+```{r phase 2 s-chart, include=FALSE}
+# for fig.5
+e <- qcc(p1.c, type = "S", std.dev = c$std.dev, 
+         newdata = p2.data)
+wl1 <- limits.S(e$center, e$std.dev, e$sizes, 1)
+wl2 <- limits.S(e$center, e$std.dev, e$sizes, 2)
+```
+
+```{r phase 2 s-chart wl, echo=FALSE, fig.cap="Phase 2 s-chart: uncorrected"}
+plot(e, add.stats = T, restore.par = F)
+  abline(h = wl1, lty = 2, col = "black")
+  abline(h = wl2, lty = 2, col = "black")
+  
+```
+
+  $>$ Correct data by removing the assignable causes of variation found in samples `r e[["violations"]][["beyond.limits"]]-38` of p2.data. Results: Created p2.c. 
+  
+  $>$ Recalculate the addition of corrected Phase 2 data (p2.c) to corrected Phase 1 data (p1.c). Results: in-control S-Chart (Fig. 6). Ready for $\bar{X}$ chart.
+  
+```{r phase 2 chart correction #1, echo=FALSE}
+# phase 2 data re-evaluation #1
+v.c <- e[["violations"]][["beyond.limits"]]-38
+p2.c <- p2.data[-(v.c),]
+
+```
+
+```{r phase 2 s-chart corrected, echo=FALSE, fig.cap="Phase 2 s-chart: corrected"}
+#for fig.6
+f <- qcc(p1.c, type = "S", std.dev = c$std.dev, 
+         newdata = p2.c)
+
+```
+
+  $>$ Create $\bar{X}$ chart of Phase 1 + 2, S-corrected data. Results: Rule 1 and 4 violations (Fig. 7).
+
+```{r phase 2 xbar-chart, include=FALSE}
+# for fig.7
+g <- qcc(p1.c, type = "xbar", std.dev = c$std.dev, 
+         newdata = p2.c)
+wl1 <- limits.xbar(g$center, g$std.dev, g$sizes, 1)
+wl2 <- limits.xbar(g$center, g$std.dev, g$sizes, 2)
+```
+
+```{r phase 2 xbar-chart wl, echo=FALSE, fig.cap="phase 2 xbar-chart: uncorrected", results='hide'}
+plot(g, add.stats = T, restore.par = F)
+  abline(h = wl1, lty = 2, col = "black")
+  abline(h = wl2, lty = 2, col = "black")
+  
+```
+
+```{r phase 2 chart correction #2, include=FALSE}
+# phase 2 data re-evaluation #2
+v.c <- g[["violations"]][["beyond.limits"]]-38
+p2.cc <- p2.c[-(v.c),]
+
+```
+
+  $>$ Recorrect S-chart data p2.c by removing sample points violating just rule 1 from the previous $\bar{X}$ chart (`r g[["violations"]][["beyond.limits"]]-38`). Results: Created p2.cc and 2x corrected S-chart (Fig. 8).
+
+```{r phase 2 s-chart 2x corrected, echo=FALSE, fig.cap="Phase 2 s-chart: 2x corrected"}
+# for fig.8
+h <- qcc(p1.c, type = "S", std.dev = c$std.dev, 
+         newdata = p2.cc)
+
+```
+
+  $>$ Create $\bar{X}$ chart of Phase 1 + 2, 2x S-corrected data. Results: in-control $\bar{X}$ chart of Phase 2 (Fig. 9).
+
+```{r phase 2 xbar-chart corrected, echo=FALSE, fig.cap="Phase 2 xbar-chart: corrected", results='hide'}
+# for fig.9
+i <- qcc(p1.c, type = "xbar", std.dev = c$std.dev, 
+         newdata = p2.cc)
+
+```
+
+# Process Performance
+## Phase 1
+
+Phase 1 focused on the initial evaluation and calibration of the process. Control charts (S and $\bar{X}$) were employed to assess the presence and nature of statistical control. Initial analysis of the data revealed several rule violations—particularly rule 4—exhibiting non-random patterns. Such a violation typically indicates a systematic shift or drift in the process, reflecting potential assignable causes rather than random fluctuations inherent to the process.
+
+Corrective measures involved removing samples associated with these violations and recalculating the control limits. Following this adjustment, the control charts indicated that the process had become in statistical control. The resulting data showed reduced fluctuations, although the process mean shifted lower to approximately 15.06, well below the target value of 16, and continued exhibiting excessive variation, with a standard deviation of `r i$std.dev`.
+
+## Phase 2
+
+In Phase 2, ongoing monitoring began with excessive variation, violating rule requiring repeated corrective measures to regain control. After stabilization, the process remained excessively variable and off-center.
+
+# Population Parameters
+
+```{r pop. parameters, include=FALSE}
+# for population parameters
+# for when n = 19
+A3 = 0.698
+B4 = 1.503
+B3 = 0.497
+c4 = 0.9862
+sb = mean(apply(p1.c, MARGIN = 1, FUN = sd))
+xbb = mean(apply(p1.c, MARGIN = 1, FUN = mean))
+sigma = sb/c4
+sucl = B4 * sb
+slcl = B3 * sb
+xbucl = xbb + A3*sb
+xblcl = xbb - A3*sb
+
+```
+
+
+The estimated population parameters were calculated using Phase 1 cleaned data. The process mean ($\mu$) was estimated as $\bar{\bar{x}} =$ `r xbb`, and the standard deviation ($\sigma$) was estimated as $\hat{\sigma} = \frac{s_b}{c_4} = \frac{3.95}{0.9862} \approx$ `r i$std.dev`, where $\bar{s}$ is the average sample standard deviation and $c_4$ is a correction factor for bias (when n = 19). These estimates provide a basis for understanding the central tendency and variability of the process. Given the reasonably large sample size and the fact that out-of-control points were removed before estimation, these parameter estimates are numerically stable and likely precise. Because the removed points were associated with identifiable assignable causes, their exclusion is justified, and the resulting estimates are considered valid representations of the process under natural variation. However, their reliability as long-term population values remains conditional on continued control in Phase 2.
+
+# Process Capability
+
+The specification limits are 13.5 (LSL), 18.5 (USL), and the target is 16. The results of the process capability analysis are summarized in Fig. 10.
+
+```{r process capability, echo=FALSE, fig.cap="process capability analysis", results='hide'}
+# for fig.10
+o <- process.capability(i,
+                   spec.limits=c(13.5,18.5))
+
+```
+
+These results confirm that over half of the outputs produced fall outside the acceptable specification range, with a significant concentration below the lower limit. The process is both off-center ($\bar{\bar{x}}$ = 15.06 vs. target = 16) and too variable ($\hat{\sigma}$ = `r i$std.dev`) relative to the 5-output specification width (13.5 - 18.5).
+
+This process is not capable of meeting the given specification limits. The extremely low $C_p$ and $C_{pk}$ values reflect a combination of poor centering and high variability. To improve capability:
+
+* Improve the process output through process redesign or experimental design.
+* Identify additional assignable causes of variation.
+* Intensify monitoring by increasing sampling frequency.
+
+Unless corrective actions are taken, **this process is likely to continue producing a high proportion of non-conforming outputs.**
+
+# Present Data Patterns
+
+The data from both Phase 1 and Phase 2 was analyzed to identify patterns in the process mean and variability over time. Means and standard deviations were computed for each sample, and trends were visualized to assess the stability and consistency of the process.
+
+During Phase 1, the process exhibited considerable instability and variation:
+
+* Sample means fluctuated significantly, indicating a lack of central tendency and possible addiotnal assignable cause variation.
+* The average sample mean was approximately 15.06, which is below the target value of 16.
+* Sample standard deviations were highly variable, with several samples showing elevated spread. This reflects inconsistent process behavior and excessive variability.
+* Overall, the Phase 1 data presents as random and avoids cyclic behavior.
+
+Analysis of patterns in Phase 2 reveals that overall, the data also presents as random and avoids cyclic behavior as the process is in statistical control. 
+
+# Control Charts Sensitivity
+
+With over 50% of outputs falling outside specification and a Cp value indicating the process spread exceeds 480% of the allowable band, the primary concern is excessive variability—not subtle, undetected shifts in the process.
+
+In this context, increasing control chart sensitivity—for example, by applying 2-sigma warning limits or incorporating additional Western Electric rules—would offer limited practical benefit. Sensitivity improvements are most useful when a process is stable and capable, where early detection of small shifts can prevent quality degradation. Here, however, the process is fundamentally incapable and unstable, with variability and centering issues that dominate quality outcomes. Detecting minor shifts earlier would not meaningfully improve performance until the baseline issues are corrected.
+
+Furthermore, increasing sensitivity would reduce the in-control Average Run Length ($ARL_O$), which is already low at approximately 1.86, based on the observed probability of a output falling outside the specification limits ($\frac{1}{0.349 + 0.197}$). This extremely short run length means that non-conforming outputs are already being produced almost every other sample, and increasing sensitivity would only lead to more frequent signals—most of which may not correspond to assignable causes.
+
+This report uses 2-sigma warning limits, however, not to increase sensitivity in hopes of detecting minor shifts, but to help visualize and reinforce the extent of the process’s instability. The limits in this case underscore that the process is already in a state of failure relative to both statistical control and specification conformance. 
+
+Therefore, for this process, the priority should be to reduce inherent variability, bring the process mean closer to the target, and eliminate any known assignable causes of variation. Once these fundamental issues are addressed and the process achieves reasonable capability, then revisiting permanent warning limits could be appropriate.
+
+# Appropriate Control Charts
+## Control Chart Selection
+The choice of appropriate control charts depends heavily on the structure of the data and the type of measurement being analyzed. In this case, the dataset consisted of continuous, quantitative measurements arranged in a matrix format, where each row represented an independent sample and each column a measurement within that sample This structure implies samples with sample size n > 1, making variable control charts—specifically the $\bar{X}$ and S charts—the most suitable.
+
+## The S-Chart
+The S-chart is used to monitor variability within samples of the process. Each point on the S-chart represents the standard deviation of a individual sample. This chart is particularly effective when the sample size is large or inconsistent, which applies to this data (sample size of 19). The decision to use an S-chart over an R-chart (which tracks the range) is based on the fact that standard deviation provides a more statistically efficient and robust estimate of spread, especially when n > 10.
+
+In the analysis, the S-chart was used in Phase 1 to identify any samples with unusually high or low variability, which could indicate assignable causes affecting consistency. Out-of-control points were removed to isolate natural variation. The cleaned S-chart provided a stable estimate of sample standard deviation, which was then used as input for the corresponding $\bar{X}$-chart.
+
+## The $\bar{X}$-Chart
+The $\bar{X}$-chart monitors the central tendency (i.e., the process mean) across samples. Each plotted point represents the average of the 19 measurements. In this analysis, the $\bar{X}$-chart was paired with the S-chart to evaluate whether the process mean was stable over time, assuming the standard deviation provided by the cleaned S-chart represented true process variability.
+
+By separating the monitoring of spread (S-chart) and location ($\bar{X}$-chart), this two-chart system offers a comprehensive view of process behavior. In the initial phase, violations in the $\bar{X}$-chart (such as 9 points in Fig. 2) indicated that the process was off-center and possibly unstable. After removal of violating samples, the recomputed $\bar{X}$-chart showed improved stability, though still revealing that the process mean (15.06) was below the desired target (16), confirming centering issues despite being in control.
+
+# Practical Implications
+
+This process is in statistically in control but not capable of consistently producing outputs within specification. Despite the absence of assignable causes in the final cleaned control charts, the process exhibits systemic deficiencies rooted in its inherent variability and poor centering. In broader terms, the implications may include:
+
+* Increased Waste or Inefficiency
+* Reduced Reliability or Effectiveness
+* Hidden Operational Costs
+* Exposure to Reputational Risks
+* Misalignment with Performance Goals
+
+
+Without corrective action, the process is likely to continue yielding a high proportion of non-conforming outputs, with potential consequences for efficiency, quality, and broader organizational goals.
+
+**Immediate process improvement is recommended to reduce non-conformance and operational impact.**
+
+\newpage
+\newpage
+# Code Appendix
+```{r get-labels, echo = FALSE}
+labs = knitr::all_labels()
+labs = setdiff(labs, c("setup", "get-labels"))
+```
+
+```{r all-code, eval=FALSE, ref.label=labs}
+```
